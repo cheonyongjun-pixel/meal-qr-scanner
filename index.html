@@ -585,7 +585,10 @@
           new Html5Qrcode('reader');
 
         await html5QrCode.start(
-          selectedCamera.id,
+  {
+    facingMode: 'user'
+  },
+
           {
             fps: 10,
 
