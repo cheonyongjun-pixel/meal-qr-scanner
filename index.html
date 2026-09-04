@@ -337,9 +337,15 @@
       'https://script.google.com/macros/s/AKfycbwOtMGooNvzosyqgLPm_1UDNMDIHLOiNbTihWEjevkHfnHHqMQiSYZGELszksXQO2B1/exec';
 
     let html5QrCode = null;
-    let isScanning = false;
-    let isProcessing = false;
-    let audioContext = null;
+let isScanning = false;
+let isProcessing = false;
+let audioContext = null;
+
+let lastScannedQr = '';
+let lastScannedTime = 0;
+
+const SAME_QR_COOLDOWN_MS = 5000;
+
 
     const deviceNameInput =
       document.getElementById('deviceName');
@@ -685,11 +691,33 @@
 
 
     async function processQrValue(qrValue) {
-      if (isProcessing) {
-        return;
-      }
+  const normalizedQr =
+    String(qrValue || '').trim();
 
-      isProcessing = true;
+  const currentTime =
+    Date.now();
+
+  /*
+   * 동일 QR을 5초 안에 다시 인식한 경우에는
+   * 카메라 앞에서 아직 QR을 치우지 않은 것으로 보고
+   * 서버에 전송하지 않습니다.
+   */
+  if (
+    normalizedQr === lastScannedQr &&
+    currentTime - lastScannedTime <
+      SAME_QR_COOLDOWN_MS
+  ) {
+    return;
+  }
+
+  if (isProcessing) {
+    return;
+  }
+
+  lastScannedQr = normalizedQr;
+  lastScannedTime = currentTime;
+  isProcessing = true;
+
 
       if (
         html5QrCode &&
@@ -717,7 +745,7 @@
         const response =
           await callAppsScript({
             action: 'scan',
-            qr: qrValue,
+            qr: normalizedQr,
             device: deviceName
           });
 
@@ -725,7 +753,7 @@
 
         window.setTimeout(
           resumeScanner,
-          3000
+          1500
         );
 
       } catch (error) {
@@ -743,7 +771,7 @@
 
         window.setTimeout(
           resumeScanner,
-          4000
+          2500
         );
       }
     }
