@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  >
+
+  <title>급식 QR 확인</title>
+
+  <!--
+    QR 인식 라이브러리입니다.
+    학교 네트워크에서 unpkg.com이 차단되면
+    페이지 아래쪽에 라이브러리 오류가 표시됩니다.
+  -->
+  <script
+    src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+  ></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 12px;
+      color: #111827;
+      background: #f3f4f6;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .card {
+      margin-bottom: 12px;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px;
+      border: 1px solid #9ca3af;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      min-height: 52px;
+      padding: 10px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .primary {
+      color: #ffffff;
+      background: #2563eb;
+    }
+
+    .secondary {
+      color: #111827;
+      border-color: #9ca3af;
+      background: #ffffff;
+    }
+
+    .dark {
+      color: #ffffff;
+      background: #374151;
+    }
+
+    #reader {
+      width: 100%;
+      min-height: 300px;
+      overflow: hidden;
+      border-radius: 6px;
+      background: #111827;
+    }
+
+    .result {
+      min-height: 180px;
+      margin-top: 12px;
+      padding: 20px;
+      border: 3px solid #9ca3af;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .neutral {
+      border-color: #9ca3af;
+      background: #ffffff;
+    }
+
+    .processing {
+      border-color: #2563eb;
+      background: #dbeafe;
+    }
+
+    .approved {
+      border-color: #15803d;
+      background: #dcfce7;
+    }
+
+    .denied {
+      border-color: #b91c1c;
+      background: #fee2e2;
+    }
+
+    .duplicate {
+      border-color: #b45309;
+      background: #ffedd5;
+    }
+
+    .error {
+      border-color: #991b1b;
+      background: #fef2f2;
+    }
+
+    .result-title {
+      margin-bottom: 10px;
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .result-student {
+      margin-bottom: 8px;
+      font-size: 23px;
+      font-weight: 700;
+    }
+
+    .result-detail {
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    .status-line {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #4b5563;
+    }
+
+    .manual-row {
+      display: grid;
+      grid-template-columns: 1fr 135px;
+      gap: 8px;
+    }
+
+    .notice {
+      margin-top: 8px;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 8px;
+      }
+
+      .manual-row {
+        grid-template-columns: 1fr;
+      }
+
+      .result-title {
+        font-size: 27px;
+      }
+
+      .result-student {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>급식 QR 확인</h1>
+      <p>
+        스캔 시작을 누른 후 학생의 QR코드를 카메라 중앙에
+        보여주세요.
+      </p>
+    </section>
+
+    <section class="card">
+      <label for="deviceName">기기 이름</label>
+
+      <input
+        type="text"
+        id="deviceName"
+        value="급식소 태블릿"
+        maxlength="60"
+      >
+
+      <div class="button-row">
+        <button
+          id="connectionButton"
+          class="secondary"
+          type="button"
+        >
+          서버 연결 확인
+        </button>
+
+        <button
+          id="startButton"
+          class="primary"
+          type="button"
+        >
+          스캔 시작
+        </button>
+      </div>
+
+      <div class="button-row">
+        <button
+          id="stopButton"
+          class="secondary"
+          type="button"
+          disabled
+        >
+          스캔 중지
+        </button>
+
+        <button
+          id="resetButton"
+          class="secondary"
+          type="button"
+        >
+          화면 초기화
+        </button>
+      </div>
+
+      <div id="connectionStatus" class="status-line">
+        서버 연결 확인을 먼저 실행해 주세요.
+      </div>
+    </section>
+
+    <section class="card">
+      <div id="reader"></div>
+
+      <div id="resultPanel" class="result neutral">
+        <div id="resultTitle" class="result-title">
+          준비 중
+        </div>
+
+        <div id="resultStudent" class="result-student"></div>
+
+        <div id="resultDetail" class="result-detail">
+          먼저 서버 연결 확인을 눌러주세요.
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>관리자용 수동 확인</h2>
+
+      <div class="manual-row">
+        <input
+          type="text"
+          id="manualQr"
+          placeholder="MEAL:을 포함한 전체 QR값"
+        >
+
+        <button
+          id="manualButton"
+          class="dark"
+          type="button"
+        >
+          수동 확인
+        </button>
+      </div>
+
+      <div class="notice">
+        수동 확인도 실제 식사기록으로 저장됩니다.
+        반드시 MEAL:을 포함한 전체 QR값을 입력하십시오.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /*
+     * 매우 중요:
+     * 아래 주소를 본인의 Apps Script /exec 주소로 변경합니다.
+     */
+    const APPS_SCRIPT_URL =
+      'https://script.google.com/macros/s/AKfycbwOtMGooNvzosyqgLPm_1UDNMDIHLOiNbTihWEjevkHfnHHqMQiSYZGELszksXQO2B1/exec';
+
+    let html5QrCode = null;
+    let isScanning = false;
+    let isProcessing = false;
+    let audioContext = null;
+
+    const deviceNameInput =
+      document.getElementById('deviceName');
+
+    const connectionButton =
+      document.getElementById('connectionButton');
+
+    const startButton =
+      document.getElementById('startButton');
+
+    const stopButton =
+      document.getElementById('stopButton');
+
+    const resetButton =
+      document.getElementById('resetButton');
+
+    const manualQr =
+      document.getElementById('manualQr');
+
+    const manualButton =
+      document.getElementById('manualButton');
+
+    const connectionStatus =
+      document.getElementById('connectionStatus');
+
+    const resultPanel =
+      document.getElementById('resultPanel');
+
+    const resultTitle =
+      document.getElementById('resultTitle');
+
+    const resultStudent =
+      document.getElementById('resultStudent');
+
+    const resultDetail =
+      document.getElementById('resultDetail');
+
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      function() {
+        const savedDeviceName =
+          localStorage.getItem('mealDeviceName');
+
+        if (savedDeviceName) {
+          deviceNameInput.value = savedDeviceName;
+        }
+
+        if (
+          APPS_SCRIPT_URL.includes(
+            '여기에_APPS_SCRIPT'
+          )
+        ) {
+          showResult(
+            'error',
+            '설정이 필요합니다',
+            '',
+            'index.html 코드에 Apps Script /exec 주소를 입력해야 합니다.'
+          );
+        }
+      }
+    );
+
+
+    connectionButton.addEventListener(
+      'click',
+      testServerConnection
+    );
+
+    startButton.addEventListener(
+      'click',
+      startScanner
+    );
+
+    stopButton.addEventListener(
+      'click',
+      stopScanner
+    );
+
+    resetButton.addEventListener(
+      'click',
+      function() {
+        isProcessing = false;
+
+        showResult(
+          'neutral',
+          '스캔 대기 중',
+          '',
+          '다음 학생의 QR코드를 보여주세요.'
+        );
+      }
+    );
+
+    manualButton.addEventListener(
+      'click',
+      function() {
+        const qrValue = manualQr.value.trim();
+
+        if (!qrValue) {
+          showResult(
+            'error',
+            'QR값이 없습니다',
+            '',
+            'MEAL:을 포함한 전체 QR값을 입력해 주세요.'
+          );
+          return;
+        }
+
+        processQrValue(qrValue);
+      }
+    );
+
+    deviceNameInput.addEventListener(
+      'change',
+      saveDeviceName
+    );
+
+
+    function saveDeviceName() {
+      const deviceName =
+        deviceNameInput.value.trim() ||
+        '급식소 태블릿';
+
+      localStorage.setItem(
+        'mealDeviceName',
+        deviceName
+      );
+    }
+
+
+    async function testServerConnection() {
+      try {
+        connectionButton.disabled = true;
+
+        connectionStatus.textContent =
+          'Apps Script 서버에 연결하고 있습니다.';
+
+        showResult(
+          'processing',
+          '서버 연결 확인 중',
+          '',
+          '잠시 기다려주세요.'
+        );
+
+        const response = await callAppsScript({
+          action: 'ping'
+        });
+
+        if (
+          response &&
+          response.status === 'READY'
+        ) {
+          connectionStatus.textContent =
+            '서버 연결 성공: ' +
+            response.serverTime;
+
+          showResult(
+            'approved',
+            '서버 연결 성공',
+            '',
+            response.message
+          );
+
+          playAlertSound('approved');
+        } else {
+          throw new Error(
+            '서버가 올바른 연결 결과를 반환하지 않았습니다.'
+          );
+        }
+
+      } catch (error) {
+        console.error(error);
+
+        connectionStatus.textContent =
+          '서버 연결 실패';
+
+        showResult(
+          'error',
+          '서버 연결 실패',
+          '',
+          getErrorMessage(error)
+        );
+
+        playAlertSound('error');
+
+      } finally {
+        connectionButton.disabled = false;
+      }
+    }
+
+
+    async function startScanner() {
+      try {
+        if (isScanning) {
+          return;
+        }
+
+        saveDeviceName();
+        initializeAudio();
+
+        if (
+          typeof Html5Qrcode === 'undefined'
+        ) {
+          throw new Error(
+            'QR 인식 프로그램을 불러오지 못했습니다. ' +
+            '인터넷 연결 또는 unpkg.com 차단 여부를 확인해 주세요.'
+          );
+        }
+
+        showResult(
+          'processing',
+          '카메라 연결 중',
+          '',
+          '카메라 사용 요청이 나타나면 허용을 눌러주세요.'
+        );
+
+        const cameras =
+          await Html5Qrcode.getCameras();
+
+        if (
+          !cameras ||
+          cameras.length === 0
+        ) {
+          throw new Error(
+            '사용할 수 있는 카메라를 찾지 못했습니다.'
+          );
+        }
+
+        let selectedCamera =
+          cameras[cameras.length - 1];
+
+        const backCamera =
+          cameras.find(function(camera) {
+            return /back|rear|environment|후면/i
+              .test(camera.label);
+          });
+
+        if (backCamera) {
+          selectedCamera = backCamera;
+        }
+
+        html5QrCode =
+          new Html5Qrcode('reader');
+
+        await html5QrCode.start(
+          selectedCamera.id,
+          {
+            fps: 10,
+
+            qrbox: function(
+              viewfinderWidth,
+              viewfinderHeight
+            ) {
+              const size = Math.floor(
+                Math.min(
+                  viewfinderWidth,
+                  viewfinderHeight
+                ) * 0.7
+              );
+
+              return {
+                width: size,
+                height: size
+              };
+            },
+
+            aspectRatio: 1
+          },
+
+          function(decodedText) {
+            processQrValue(decodedText);
+          },
+
+          function() {
+            /*
+             * QR이 없는 화면은 오류가 아니므로
+             * 아무것도 표시하지 않습니다.
+             */
+          }
+        );
+
+        isScanning = true;
+        startButton.disabled = true;
+        stopButton.disabled = false;
+
+        showResult(
+          'neutral',
+          '스캔 대기 중',
+          '',
+          'QR코드를 카메라 중앙에 보여주세요.'
+        );
+
+      } catch (error) {
+        console.error(error);
+
+        isScanning = false;
+        startButton.disabled = false;
+        stopButton.disabled = true;
+
+        showResult(
+          'error',
+          '카메라를 시작하지 못했습니다',
+          '',
+          getCameraErrorMessage(error)
+        );
+
+        playAlertSound('error');
+      }
+    }
+
+
+    async function stopScanner() {
+      try {
+        if (
+          html5QrCode &&
+          isScanning
+        ) {
+          await html5QrCode.stop();
+          await html5QrCode.clear();
+        }
+      } catch (error) {
+        console.error(error);
+
+      } finally {
+        html5QrCode = null;
+        isScanning = false;
+        isProcessing = false;
+
+        startButton.disabled = false;
+        stopButton.disabled = true;
+
+        showResult(
+          'neutral',
+          '스캔이 중지되었습니다',
+          '',
+          '다시 사용하려면 스캔 시작을 눌러주세요.'
+        );
+      }
+    }
+
+
+    async function processQrValue(qrValue) {
+      if (isProcessing) {
+        return;
+      }
+
+      isProcessing = true;
+
+      if (
+        html5QrCode &&
+        isScanning
+      ) {
+        try {
+          html5QrCode.pause(true);
+        } catch (error) {
+          console.warn(error);
+        }
+      }
+
+      showResult(
+        'processing',
+        '학생 확인 중',
+        '',
+        '신청 여부와 오늘의 식사기록을 확인하고 있습니다.'
+      );
+
+      try {
+        const deviceName =
+          deviceNameInput.value.trim() ||
+          '급식소 태블릿';
+
+        const response =
+          await callAppsScript({
+            action: 'scan',
+            qr: qrValue,
+            device: deviceName
+          });
+
+        handleServerResponse(response);
+
+        window.setTimeout(
+          resumeScanner,
+          3000
+        );
+
+      } catch (error) {
+        console.error(error);
+
+        showResult(
+          'error',
+          '처리 서버 오류',
+          '',
+          getErrorMessage(error)
+        );
+
+        playAlertSound('error');
+        speak('처리 중 오류가 발생했습니다.');
+
+        window.setTimeout(
+          resumeScanner,
+          4000
+        );
+      }
+    }
+
+
+    /**
+     * Apps Script를 JSONP 방식으로 호출합니다.
+     */
+    function callAppsScript(parameters) {
+      return new Promise(
+        function(resolve, reject) {
+          if (
+            !APPS_SCRIPT_URL ||
+            APPS_SCRIPT_URL.includes(
+              '여기에_APPS_SCRIPT'
+            )
+          ) {
+            reject(
+              new Error(
+                'index.html에 Apps Script 주소가 설정되지 않았습니다.'
+              )
+            );
+            return;
+          }
+
+          const callbackName =
+            'mealCallback_' +
+            Date.now() +
+            '_' +
+            Math.floor(
+              Math.random() * 1000000
+            );
+
+          const script =
+            document.createElement('script');
+
+          const timeout =
+            window.setTimeout(
+              function() {
+                cleanup();
+
+                reject(
+                  new Error(
+                    '서버 응답 시간이 초과되었습니다. ' +
+                    '인터넷 연결과 웹 앱 접근 권한을 확인해 주세요.'
+                  )
+                );
+              },
+              15000
+            );
+
+          function cleanup() {
+            window.clearTimeout(timeout);
+
+            if (
+              script.parentNode
+            ) {
+              script.parentNode.removeChild(
+                script
+              );
+            }
+
+            try {
+              delete window[callbackName];
+            } catch (error) {
+              window[callbackName] = undefined;
+            }
+          }
+
+          window[callbackName] =
+            function(response) {
+              cleanup();
+              resolve(response);
+            };
+
+          const query =
+            new URLSearchParams();
+
+          Object.keys(parameters)
+            .forEach(function(key) {
+              query.set(
+                key,
+                String(parameters[key])
+              );
+            });
+
+          query.set(
+            'callback',
+            callbackName
+          );
+
+          /*
+           * 브라우저가 이전 요청 결과를 재사용하지 않도록
+           * 매 요청마다 다른 값을 추가합니다.
+           */
+          query.set(
+            'nonce',
+            String(Date.now())
+          );
+
+          script.src =
+            APPS_SCRIPT_URL +
+            '?' +
+            query.toString();
+
+          script.async = true;
+
+          script.onerror =
+            function() {
+              cleanup();
+
+              reject(
+                new Error(
+                  'Apps Script 응답을 불러오지 못했습니다. ' +
+                  '웹 앱이 모든 사용자에게 공개되었는지 확인해 주세요.'
+                )
+              );
+            };
+
+          document.body.appendChild(script);
+        }
+      );
+    }
+
+
+    function handleServerResponse(response) {
+      if (!response) {
+        showResult(
+          'error',
+          '응답 오류',
+          '',
+          '서버에서 결과를 받지 못했습니다.'
+        );
+
+        playAlertSound('error');
+        speak('처리 중 오류가 발생했습니다.');
+        return;
+      }
+
+      const studentText =
+        buildStudentText(response);
+
+      switch (response.status) {
+        case 'APPROVED':
+          showResult(
+            'approved',
+            '식사 가능합니다',
+            studentText,
+            '정상 처리 시각: ' +
+              response.processedTime
+          );
+
+          playAlertSound('approved');
+          speak('식사 가능합니다.');
+          break;
+
+        case 'NOT_APPLIED':
+          showResult(
+            'denied',
+            '급식 미신청',
+            studentText,
+            '담당자에게 문의해 주세요.'
+          );
+
+          playAlertSound('denied');
+          speak('급식 미신청 학생입니다.');
+          break;
+
+        case 'DUPLICATE':
+          showResult(
+            'duplicate',
+            '이미 식사 처리됨',
+            studentText,
+            '최초 처리 시각: ' +
+              response.firstMealTime
+          );
+
+          playAlertSound('duplicate');
+          speak('이미 식사 처리되었습니다.');
+          break;
+
+        case 'UNREGISTERED':
+          showResult(
+            'error',
+            '등록되지 않은 QR',
+            '',
+            '학생명단 또는 QR카드를 확인해 주세요.'
+          );
+
+          playAlertSound('error');
+          speak('등록되지 않은 QR입니다.');
+          break;
+
+        default:
+          showResult(
+            'error',
+            '처리 오류',
+            '',
+            response.message ||
+              '처리 중 오류가 발생했습니다.'
+          );
+
+          playAlertSound('error');
+          speak('처리 중 오류가 발생했습니다.');
+          break;
+      }
+    }
+
+
+    function resumeScanner() {
+      isProcessing = false;
+      manualQr.value = '';
+
+      if (
+        html5QrCode &&
+        isScanning
+      ) {
+        try {
+          html5QrCode.resume();
+        } catch (error) {
+          console.warn(error);
+        }
+      }
+
+      showResult(
+        'neutral',
+        '스캔 대기 중',
+        '',
+        '다음 학생의 QR코드를 보여주세요.'
+      );
+    }
+
+
+    function buildStudentText(response) {
+      const parts = [];
+
+      if (
+        response.grade !== undefined &&
+        response.grade !== null &&
+        String(response.grade) !== ''
+      ) {
+        parts.push(
+          response.grade + '학년'
+        );
+      }
+
+      if (
+        response.classNo !== undefined &&
+        response.classNo !== null &&
+        String(response.classNo) !== ''
+      ) {
+        parts.push(
+          response.classNo + '반'
+        );
+      }
+
+      if (
+        response.number !== undefined &&
+        response.number !== null &&
+        String(response.number) !== ''
+      ) {
+        parts.push(
+          response.number + '번'
+        );
+      }
+
+      if (response.name) {
+        parts.push(response.name);
+      }
+
+      return parts.join(' ');
+    }
+
+
+    function showResult(
+      statusClass,
+      title,
+      student,
+      detail
+    ) {
+      resultPanel.className =
+        'result ' + statusClass;
+
+      resultTitle.textContent =
+        title || '';
+
+      resultStudent.textContent =
+        student || '';
+
+      resultDetail.textContent =
+        detail || '';
+    }
+
+
+    function initializeAudio() {
+      try {
+        if (!audioContext) {
+          const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+          if (AudioContextClass) {
+            audioContext =
+              new AudioContextClass();
+          }
+        }
+
+        if (
+          audioContext &&
+          audioContext.state === 'suspended'
+        ) {
+          audioContext.resume();
+        }
+
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+
+    function playTone(
+      frequency,
+      duration,
+      delay
+    ) {
+      if (!audioContext) {
+        return;
+      }
+
+      window.setTimeout(
+        function() {
+          try {
+            const oscillator =
+              audioContext.createOscillator();
+
+            const gainNode =
+              audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value =
+              frequency;
+
+            gainNode.gain.setValueAtTime(
+              0.18,
+              audioContext.currentTime
+            );
+
+            gainNode.gain
+              .exponentialRampToValueAtTime(
+                0.001,
+                audioContext.currentTime +
+                  duration
+              );
+
+            oscillator.connect(gainNode);
+            gainNode.connect(
+              audioContext.destination
+            );
+
+            oscillator.start();
+
+            oscillator.stop(
+              audioContext.currentTime +
+                duration
+            );
+
+          } catch (error) {
+            console.warn(error);
+          }
+        },
+        delay
+      );
+    }
+
+
+    function playAlertSound(type) {
+      initializeAudio();
+
+      if (type === 'approved') {
+        playTone(880, 0.18, 0);
+        playTone(1175, 0.18, 180);
+        return;
+      }
+
+      if (type === 'denied') {
+        playTone(220, 0.28, 0);
+        playTone(220, 0.28, 330);
+        return;
+      }
+
+      if (type === 'duplicate') {
+        playTone(440, 0.16, 0);
+        playTone(440, 0.16, 220);
+        playTone(440, 0.16, 440);
+        return;
+      }
+
+      playTone(180, 0.35, 0);
+      playTone(140, 0.35, 380);
+    }
+
+
+    function speak(text) {
+      try {
+        if (
+          !('speechSynthesis' in window)
+        ) {
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const utterance =
+          new SpeechSynthesisUtterance(
+            text
+          );
+
+        utterance.lang = 'ko-KR';
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        window.speechSynthesis.speak(
+          utterance
+        );
+
+      } catch (error) {
+        console.warn(error);
+      }
+    }
+
+
+    function getErrorMessage(error) {
+      if (!error) {
+        return '알 수 없는 오류가 발생했습니다.';
+      }
+
+      if (typeof error === 'string') {
+        return error;
+      }
+
+      if (error.message) {
+        return error.message;
+      }
+
+      return String(error);
+    }
+
+
+    function getCameraErrorMessage(error) {
+      const name =
+        String(error && error.name || '');
+
+      const message =
+        getErrorMessage(error);
+
+      const combined =
+        (name + ' ' + message).toLowerCase();
+
+      if (
+        combined.includes('notallowederror') ||
+        combined.includes('permission denied') ||
+        combined.includes('not allowed')
+      ) {
+        return (
+          '카메라 권한이 거부되었습니다. ' +
+          '이 GitHub Pages 사이트의 카메라 권한을 허용한 후 ' +
+          '페이지를 다시 열어주세요. 오류: ' +
+          message
+        );
+      }
+
+      if (
+        combined.includes('notfounderror') ||
+        combined.includes('devicesnotfound')
+      ) {
+        return (
+          '사용 가능한 카메라를 찾지 못했습니다. 오류: ' +
+          message
+        );
+      }
+
+      if (
+        combined.includes('notreadableerror') ||
+        combined.includes('trackstarterror')
+      ) {
+        return (
+          '다른 앱이 카메라를 사용 중일 수 있습니다. ' +
+          '카메라 관련 앱을 종료하고 다시 시도해 주세요. 오류: ' +
+          message
+        );
+      }
+
+      if (
+        combined.includes('overconstrainederror')
+      ) {
+        return (
+          '이 기기에서 요청한 카메라 조건을 사용할 수 없습니다. 오류: ' +
+          message
+        );
+      }
+
+      return (
+        '카메라 오류: ' +
+        (name || '종류 확인 불가') +
+        ' / ' +
+        message
+      );
+    }
+  </script>
+</body>
+</html>
